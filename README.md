@@ -1,30 +1,59 @@
 # Library Management System with Role-Based Authentication
 
-A `PHP + MySQL + Tailwind CSS` web application for managing library books, borrowers, borrowing records, returns, penalties, and reports.
+A `PHP + MySQL + Tailwind CSS` web application for managing books, borrowers, borrowing records, returns, penalties, and reports in a school library context.
 
-## Features
+This README is written as a **classroom/demo guide** for three audiences:
 
-- Admin/librarian and borrower login
+- **Presenter** (the person running the demo)
+- **Students** (class participants)
+- **Professor/Instructor** (the evaluator or reviewer)
+
+---
+
+## 1) Project Overview
+
+The system models a practical library workflow:
+
+- Borrowers (students) can register and upload a student ID.
+- Admin/Librarian reviews registrations and approves or rejects accounts.
+- Approved users can borrow/return books.
+- The system tracks due dates, overdue items, and penalties.
+- Reports are available for presentation and discussion.
+
+This makes it suitable for:
+
+- Database coursework
+- Web application demonstrations
+- Role-based authentication discussions
+- End-to-end CRUD and workflow evaluation
+
+---
+
+## 2) Core Features
+
+- Role-based login (`admin/librarian` and `borrower/student`)
 - Borrower self-registration
-- Admin verification for borrower registration using uploaded student IDs
-- Optional email verification for borrower registration
-- Password hashing using `password_hash()`
-- Role-based dashboard redirect
-- Book management with quantity and availability tracking
-- Borrower management with student details
-- Borrow and return workflows
-- Automatic overdue marking with penalty calculation
-- On-screen and print-friendly reports
+- Student ID upload and admin review flow
+- Optional email verification
+- Secure password hashing via `password_hash()`
+- Book catalog management with quantity tracking
+- Borrow and return transaction flow
+- Overdue detection with penalty calculation
+- Print-friendly and on-screen reports
 
-## Tech Stack
+---
+
+## 3) Tech Stack
 
 - PHP 8+
 - MySQL 8+
 - HTML
-- Tailwind CSS via CDN
-- Vanilla JavaScript for small UI interactions
+- Tailwind CSS (CDN)
+- Vanilla JavaScript (light interactions)
 
-## Project Structure
+---
+
+## 4) Project Structure
 
 ```text
 library-management-system/
@@ -49,61 +78,58 @@ library-management-system/
 `-- README.md
 ```
 
-## Setup Guide
+---
 
-### 1. Install and start XAMPP
+## 5) Setup Guide (Presenter First)
 
-Install XAMPP, then start these modules from the XAMPP Control Panel:
+> **Recommended owner of setup:** Presenter
+>
+> Students can follow later on their own machines after the class demo.
 
-- `Apache`
-- `MySQL`
+### Step 1 — Install and Start XAMPP
 
-Place the project folder inside your XAMPP web root, usually:
+1. Install XAMPP.
+2. Start these modules in XAMPP Control Panel:
+   - `Apache`
+   - `MySQL`
+
+Put the project in your web root (typical Windows path):
 
 ```text
 C:\xampp\htdocs\library-management-system
 ```
 
-### 2. Create the database
+### Step 2 — Create Database
 
-Create a database named:
+Create database:
 
 ```sql
 CREATE DATABASE library_management_system;
 ```
 
-### 3. Import the SQL files
+### Step 3 — Import SQL Files
 
-Import the files in this order:
+Import **in this order**:
 
 1. `database/schema.sql`
 2. `database/seed.sql`
 
-You can use phpMyAdmin or the MySQL command line:
+Using MySQL CLI:
 
 ```bash
 mysql -u root -p library_management_system < database/schema.sql
 mysql -u root -p library_management_system < database/seed.sql
 ```
 
-If you already imported an older version of the schema, run these `ALTER TABLE` statements once:
+### Step 4 — Configure Environment
 
-```sql
-ALTER TABLE users
-    ADD COLUMN approval_status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'approved' AFTER role,
-    ADD COLUMN email_verified_at DATETIME DEFAULT NULL AFTER approval_status,
-    ADD COLUMN verification_token_hash VARCHAR(255) DEFAULT NULL AFTER email_verified_at,
-    ADD COLUMN verification_token_expires_at DATETIME DEFAULT NULL AFTER verification_token_hash;
+Copy:
 
-ALTER TABLE borrower_profiles
-    ADD COLUMN student_id_card_path VARCHAR(255) DEFAULT NULL AFTER contact_info;
+```text
+.env.example -> .env
 ```
 
-### 4. Create your `.env` file
-
-Copy `.env.example` to `.env`, then update the values for your machine.
-
-Important database values:
+Set DB variables in `.env`:
 
 - `DB_HOST`
 - `DB_PORT`
@@ -111,27 +137,21 @@ Important database values:
 - `DB_USER`
 - `DB_PASS`
 
-This project supports `.env` on a normal XAMPP setup. You do not need to hardcode database or SMTP values in `includes/config.php`.
-
-`APP_URL` is still auto-detected by default. If your local setup needs it, you can add:
+Optional app URL values:
 
 ```env
 APP_URL=/library-management-system
-```
-
-For email verification links, also set the full public/base URL used by your browser:
-
-```env
 APP_PUBLIC_URL=http://localhost/library-management-system
 ```
 
-### 5. Configure Gmail SMTP for the presenter account
+### Step 5 — Configure Demo Email (Optional but Useful for Presentation)
 
-Use one Gmail account owned by the presenter for the live demo.
+If showing email verification in class:
 
-1. Turn on 2-Step Verification in that Google account.
-2. Create an App Password in Google Account settings.
-3. Put the Gmail address and App Password into `.env`.
+1. Use one presenter-owned Gmail account.
+2. Enable 2-Step Verification.
+3. Generate an App Password.
+4. Put values in `.env`.
 
 Example:
 
@@ -145,9 +165,9 @@ MAIL_FROM_NAME=Library Management System
 MAIL_ENCRYPTION=tls
 ```
 
-### 6. Choose whether borrower emails also need verification
+### Step 6 — Decide Verification Mode
 
-For the new admin ID-review flow, the recommended setup is:
+For class demo with admin ID review flow, recommended:
 
 ```env
 EMAIL_VERIFICATION_MODE=none
@@ -155,88 +175,207 @@ EMAIL_VERIFICATION_EMAILS=
 EMAIL_VERIFICATION_EXPIRES_HOURS=24
 ```
 
-Behavior:
+Other modes:
 
-- Borrowers register, upload a student ID, and wait for admin approval.
-- Admin-created borrower accounts are approved automatically.
-- Email verification is disabled unless you explicitly turn it on.
-
-If you want every borrower to verify:
+- Require every borrower email verification:
 
 ```env
 EMAIL_VERIFICATION_MODE=all
 ```
 
-If you want to disable verification temporarily:
+- Disable verification:
 
 ```env
 EMAIL_VERIFICATION_MODE=none
 ```
 
-### 7. Open the project
+### Step 7 — Run the App
 
-In XAMPP, open:
+Open:
 
 ```text
 http://localhost/library-management-system/login.php
 ```
 
-If you prefer PHP's built-in server instead of Apache, run:
+Alternative (PHP built-in server):
 
 ```bash
 php -S localhost:8000
 ```
 
-## Default Admin Account
+---
 
-Use this seeded admin account after importing `seed.sql`:
+## 6) Default Seeded Accounts
 
-- Email: `admin@libraryms.test`
-- Password: `admin123`
+After importing `seed.sql`:
 
-## User Roles
+- **Admin Email:** `admin@libraryms.test`
+- **Admin Password:** `admin123`
+
+> Change credentials before production/public deployment.
+
+---
+
+## 7) Presenter Guide (How to Run a Clean Demo)
+
+Use this sequence for a smooth live presentation.
+
+### A. Before Class (Checklist)
+
+- Confirm Apache/MySQL running.
+- Confirm DB imports succeeded.
+- Confirm `.env` values are valid.
+- Confirm seeded admin can log in.
+- Pre-create at least 3–5 sample books.
+- Prepare one sample student account for approval demo.
+
+### B. Demo Flow (Suggested Script)
+
+1. **Login as Admin**
+   - Show role-based dashboard.
+2. **Book Management**
+   - Add a new book.
+   - Edit quantity.
+   - Show search/filter.
+3. **Borrower Registration Review**
+   - Show pending student registration with ID card upload.
+   - Approve borrower.
+4. **Borrow Transaction**
+   - Borrow a book for approved borrower.
+5. **Return Transaction**
+   - Return book and explain status changes.
+6. **Overdue + Penalty**
+   - Explain auto-overdue and penalty concept.
+7. **Reports**
+   - Open borrowed/returned/overdue reports.
+
+### C. Presenter Tips
+
+- Speak in terms of *real school workflow* (librarian + students).
+- Explain why role separation matters (security + responsibility).
+- If time is short, prioritize: login → borrow flow → reports.
+
+---
+
+## 8) Student Guide (How to Understand and Practice)
+
+### What Students Should Learn
+
+- How authentication and roles are implemented
+- How CRUD works in a full web app
+- How relational DB tables support transactions
+- How business rules (approval, overdue, penalties) are applied
+
+### Suggested Practice Tasks
+
+1. Register as a borrower and upload student ID.
+2. Observe account state before admin approval.
+3. After approval, login and browse available books.
+4. Trace one borrow and one return flow.
+5. Inspect DB records for consistency (books, borrow logs, returns).
+
+### Mini Reflection Questions
+
+- Why should borrowers not have admin-level permissions?
+- What happens if stock quantity is not validated?
+- Why store penalties instead of calculating everything only at display time?
+
+---
+
+## 9) Professor/Instructor Guide (Evaluation Lens)
+
+### Suggested Rubric Dimensions
+
+- **Functionality:** Required features run correctly end-to-end.
+- **Data Integrity:** Quantities, statuses, and borrow/return records stay consistent.
+- **Security Basics:** Password hashing, role checks, restricted routes.
+- **Usability:** Clear workflow and understandable UI.
+- **Maintainability:** Organized file structure, readable logic, predictable setup.
+
+### Recommended Validation Scenarios
+
+- Unauthorized user cannot access admin routes.
+- Unapproved borrower cannot proceed as approved user.
+- Borrow operation decreases available quantity correctly.
+- Return operation restores quantity and updates status.
+- Overdue records appear in reporting views.
+
+### Questions to Ask During Defense
+
+- Which business rules are enforced at server side?
+- What assumptions are currently hardcoded?
+- If scaled to multiple librarians, what should change first?
+
+---
+
+## 10) User Roles Summary
 
 ### Admin / Librarian
 
-Admins can:
+Can:
 
-- View the dashboard
-- Add, edit, delete, and search books
-- Add, view, and edit borrowers
-- Borrow books for students
-- Return books
-- View penalties
-- Open reports for borrowed, returned, overdue, and most borrowed books
+- Access admin dashboard
+- Add/edit/delete/search books
+- Review borrower registrations
+- Add/edit borrower records
+- Process borrowing and returns
+- View penalties and reports
 
 ### Borrower / Student
 
-Borrowers can:
+Can:
 
-- Register an account
-- Upload a student ID for admin review
-- Wait for the librarian/admin to approve the borrower account
-- Verify their email if their address is included in `EMAIL_VERIFICATION_EMAILS` or if `EMAIL_VERIFICATION_MODE=all`
-- Log in and log out
+- Register account
+- Upload student ID for review
+- Wait for approval
+- Verify email (if enabled)
+- Login/logout
 - View available books
-- View currently borrowed books
-- Check due dates and overdue status
-- Review returned book history
 
-## Implementation Notes
+---
 
-- The code includes comments above non-trivial functions to explain what each helper does.
-- Shared logic is stored in `includes/` so the page files stay easier to follow.
-- Tailwind CSS is loaded from the CDN, so you do not need Node.js just to style the app.
-- Small JavaScript is only used for basic UI behavior like the mobile menu and confirmation prompts.
-- SMTP delivery is handled directly by the app, so there is no Composer dependency required for the classroom demo.
-- Registration, admin borrower create, and admin borrower edit now use shared dropdown options for `course` and `year_level`.
-- Uploaded student IDs are stored in `uploads/student-ids/`.
+## 11) Troubleshooting
 
-## Common Troubleshooting
+### Problem: "Database connection failed"
 
-- If the database does not connect, recheck `.env`.
-- If page links look broken, verify `APP_URL`.
-- If the admin cannot log in, confirm that `database/seed.sql` was imported.
-- If MySQL reports duplicate values, check whether the email, student ID, or ISBN already exists.
-- If Gmail does not send, confirm that you used a Google App Password instead of the normal Gmail password.
-- If verification links fail, check that the `users` table includes the new verification columns.
+Check:
+
+- `.env` DB values
+- MySQL service is running
+- Database name exists
+
+### Problem: "I cannot login with seeded admin"
+
+Check:
+
+- `seed.sql` was imported
+- You are using exact seeded credentials
+- No accidental edits to users table
+
+### Problem: "Email verification links not working"
+
+Check:
+
+- `APP_PUBLIC_URL` is correct
+- SMTP credentials are valid
+- Gmail App Password is used (not normal account password)
+
+---
+
+## 12) Notes for Academic Use
+
+- This project is suitable as a **teaching/demo system**, not production-ready software.
+- For production, add stricter validation, audit logging, rate-limiting, and stronger operational security practices.
+- Encourage students to treat this as a base for iterative improvement.
+
+---
+
+## 13) Quick Start (One-Minute Reminder)
+
+1. Start Apache + MySQL.
+2. Create `library_management_system` DB.
+3. Import `schema.sql` then `seed.sql`.
+4. Copy `.env.example` to `.env` and configure DB.
+5. Open `http://localhost/library-management-system/login.php`.
+6. Login as `admin@libraryms.test` / `admin123`.
+
