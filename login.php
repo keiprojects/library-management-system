@@ -25,16 +25,22 @@ if (is_post()) {
         $user = find_user_by_email($email);
 
         if ($user !== null && password_verify($password, $user['password'])) {
-            login_user($user);
+            if (!user_can_log_in($user)) {
+                $errors[] = ($user['role'] ?? '') === 'borrower'
+                    ? borrower_login_block_message($user)
+                    : 'Your account cannot log in right now.';
+            } else {
+                login_user($user);
 
-            if ($user['role'] === 'admin') {
-                redirect('admin/dashboard.php');
+                if ($user['role'] === 'admin') {
+                    redirect('admin/dashboard.php');
+                }
+
+                redirect('student/dashboard.php');
             }
-
-            redirect('student/dashboard.php');
+        } else {
+            $errors[] = 'Invalid email or password.';
         }
-
-        $errors[] = 'Invalid email or password.';
     }
 }
 
@@ -73,6 +79,12 @@ render_auth_start('Login');
         <p>Borrower and no account yet?</p>
         <a href="<?= e(url('register.php')) ?>" class="font-semibold text-library-ink">Create a borrower account</a>
     </div>
+    <?php if (EMAIL_VERIFICATION_MODE !== 'none'): ?>
+        <div class="mt-3 text-sm text-slate-600">
+            Need another verification email?
+            <a href="<?= e(url('resend-verification.php')) ?>" class="font-semibold text-library-ink">Resend it here</a>
+        </div>
+    <?php endif; ?>
 </div>
 <?php
 render_auth_end();

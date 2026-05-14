@@ -4,6 +4,10 @@ CREATE TABLE users (
     email VARCHAR(120) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     role ENUM('admin', 'borrower') NOT NULL DEFAULT 'borrower',
+    approval_status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'approved',
+    email_verified_at DATETIME DEFAULT NULL,
+    verification_token_hash VARCHAR(255) DEFAULT NULL,
+    verification_token_expires_at DATETIME DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -14,6 +18,7 @@ CREATE TABLE borrower_profiles (
     course VARCHAR(120) NOT NULL,
     year_level VARCHAR(50) NOT NULL,
     contact_info VARCHAR(120) NOT NULL,
+    student_id_card_path VARCHAR(255) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_borrower_profiles_user
         FOREIGN KEY (user_id) REFERENCES users(id)

@@ -35,13 +35,15 @@ render_app_start('Borrower Management', 'borrowers');
                     <th class="px-3 py-3">Email</th>
                     <th class="px-3 py-3">Course / Year</th>
                     <th class="px-3 py-3">Contact</th>
+                    <th class="px-3 py-3">Status</th>
+                    <th class="px-3 py-3">Student ID File</th>
                     <th class="px-3 py-3">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
                 <?php if ($borrowers === []): ?>
                     <tr>
-                        <td colspan="6" class="px-3 py-6 text-center text-slate-500">No borrowers found.</td>
+                        <td colspan="8" class="px-3 py-6 text-center text-slate-500">No borrowers found.</td>
                     </tr>
                 <?php endif; ?>
                 <?php foreach ($borrowers as $borrower): ?>
@@ -51,6 +53,16 @@ render_app_start('Borrower Management', 'borrowers');
                         <td class="px-3 py-4"><?= e($borrower['email']) ?></td>
                         <td class="px-3 py-4"><?= e($borrower['course']) ?> / <?= e($borrower['year_level']) ?></td>
                         <td class="px-3 py-4"><?= e($borrower['contact_info']) ?></td>
+                        <td class="px-3 py-4">
+                            <span class="badge <?= e(status_badge_class((string) $borrower['approval_status'])) ?>"><?= e(ucfirst((string) $borrower['approval_status'])) ?></span>
+                        </td>
+                        <td class="px-3 py-4">
+                            <?php if (!empty($borrower['student_id_card_path'])): ?>
+                                <a href="<?= e(url((string) $borrower['student_id_card_path'])) ?>" target="_blank" rel="noopener noreferrer" class="btn-secondary">View ID</a>
+                            <?php else: ?>
+                                <span class="text-slate-400">No file</span>
+                            <?php endif; ?>
+                        </td>
                         <td class="px-3 py-4">
                             <a href="<?= e(url('admin/borrowers/edit.php?id=' . $borrower['user_id'])) ?>" class="btn-secondary">Edit</a>
                         </td>

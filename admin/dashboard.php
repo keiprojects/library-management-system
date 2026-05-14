@@ -32,6 +32,11 @@ render_app_start('Admin Dashboard', 'dashboard');
         <p class="mt-4 text-4xl font-semibold text-amber-700"><?= e((string) $stats['overdue_books']) ?></p>
         <p class="mt-2 text-sm text-slate-500">Borrow records that passed the due date.</p>
     </div>
+    <div class="stat-block">
+        <p class="text-sm uppercase tracking-[0.25em] text-slate-500">Pending Borrowers</p>
+        <p class="mt-4 text-4xl font-semibold text-amber-700"><?= e((string) $stats['pending_borrowers']) ?></p>
+        <p class="mt-2 text-sm text-slate-500">Borrower registrations waiting for student ID approval.</p>
+    </div>
 </section>
 
 <section class="mt-8 grid gap-8 xl:grid-cols-[1.3fr_0.7fr]">
@@ -87,6 +92,7 @@ render_app_start('Admin Dashboard', 'dashboard');
             <div class="mt-5 grid gap-3">
                 <a href="<?= e(url('admin/books/create.php')) ?>" class="btn-primary">Add a New Book</a>
                 <a href="<?= e(url('admin/borrowers/create.php')) ?>" class="btn-secondary">Add Borrower</a>
+                <a href="<?= e(url('admin/borrowers/index.php')) ?>" class="btn-secondary">Review Borrowers</a>
                 <a href="<?= e(url('admin/transactions/borrow.php')) ?>" class="btn-secondary">Create Borrow Record</a>
             </div>
         </div>

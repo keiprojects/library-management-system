@@ -23,6 +23,9 @@ function status_badge_class(string $status): string
         'borrowed' => 'bg-sky-100 text-sky-700',
         'returned' => 'bg-emerald-100 text-emerald-700',
         'overdue' => 'bg-amber-100 text-amber-800',
+        'approved' => 'bg-emerald-100 text-emerald-700',
+        'pending' => 'bg-amber-100 text-amber-800',
+        'rejected' => 'bg-rose-100 text-rose-700',
         default => 'bg-slate-100 text-slate-700',
     };
 }

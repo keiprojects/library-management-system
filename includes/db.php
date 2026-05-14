@@ -25,7 +25,7 @@ function db(): PDO
     } catch (PDOException $exception) {
         http_response_code(500);
         echo '<h1>Database Connection Error</h1>';
-        echo '<p>Please update your database settings in <code>includes/config.php</code>.</p>';
+        echo '<p>Please update your database settings in <code>.env</code> or <code>includes/config.php</code>.</p>';
         echo '<pre>' . htmlspecialchars($exception->getMessage(), ENT_QUOTES, 'UTF-8') . '</pre>';
         exit;
     }

@@ -24,6 +24,24 @@ function url(string $path = ''): string
 }
 
 /**
+ * Builds an absolute URL for links that leave the browser, such as email verification.
+ */
+function absolute_url(string $path = ''): string
+{
+    if (APP_PUBLIC_URL !== '') {
+        $base = rtrim(APP_PUBLIC_URL, '/');
+        $cleanPath = ltrim($path, '/');
+
+        return $cleanPath === '' ? $base : $base . '/' . $cleanPath;
+    }
+
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+
+    return $scheme . '://' . $host . url($path);
+}
+
+/**
  * Redirects the browser to another page and stops the script.
  */
 function redirect(string $path): never
@@ -101,5 +119,135 @@ function selected(string $currentValue, string $expectedValue): string
 function checked(bool $condition): string
 {
     return $condition ? 'checked' : '';
+}
+
+/**
+ * Shared approval status options for borrower review.
+ *
+ * @return list<string>
+ */
+function borrower_approval_options(): array
+{
+    return [
+        'pending',
+        'approved',
+        'rejected',
+    ];
+}
+
+/**
+ * Shared course options for borrower forms.
+ *
+ * @return list<string>
+ */
+function course_options(): array
+{
+    return [
+        'BSIT',
+        'BSCS',
+        'BSC',
+        'BSIS',
+        'BSEMC',
+        'BSBA',
+        'BSA',
+        'BSHM',
+        'BSTM',
+        'BSEd',
+        'BEEd',
+        'BSN',
+        'Other',
+    ];
+}
+
+/**
+ * Shared year level options for borrower forms.
+ *
+ * @return list<string>
+ */
+function year_level_options(): array
+{
+    return [
+        '1st Year',
+        '2nd Year',
+        '3rd Year',
+        '4th Year',
+        '5th Year',
+        'Other',
+    ];
+}
+
+/**
+ * Checks whether a submitted value is one of the allowed dropdown options.
+ */
+function value_in_options(string $value, array $options): bool
+{
+    return in_array($value, $options, true);
+}
+
+/**
+ * Checks whether a borrower email should go through verification.
+ */
+function email_requires_verification(
+    string $email,
+    string $mode = EMAIL_VERIFICATION_MODE,
+    string $selectedEmails = EMAIL_VERIFICATION_EMAILS
+): bool {
+    $mode = strtolower(trim($mode));
+
+    if ($mode === 'none') {
+        return false;
+    }
+
+    if ($mode === 'all') {
+        return true;
+    }
+
+    $targets = array_values(array_filter(array_map(
+        static fn(string $item): string => strtolower(trim($item)),
+        explode(',', $selectedEmails)
+    )));
+
+    return in_array(strtolower(trim($email)), $targets, true);
+}
+
+/**
+ * Checks if a user may log in based on role and verification status.
+ */
+function user_can_log_in(
+    array $user,
+    string $mode = EMAIL_VERIFICATION_MODE,
+    string $selectedEmails = EMAIL_VERIFICATION_EMAILS
+): bool {
+    if (($user['role'] ?? '') !== 'borrower') {
+        return true;
+    }
+
+    if (($user['approval_status'] ?? 'approved') !== 'approved') {
+        return false;
+    }
+
+    if (!email_requires_verification((string) ($user['email'] ?? ''), $mode, $selectedEmails)) {
+        return true;
+    }
+
+    return !empty($user['email_verified_at']);
+}
+
+/**
+ * Returns the borrower login block message that best matches the account state.
+ */
+function borrower_login_block_message(array $user): string
+{
+    $approvalStatus = (string) ($user['approval_status'] ?? 'approved');
+
+    if ($approvalStatus === 'pending') {
+        return 'Your borrower account is waiting for admin approval after student ID review.';
+    }
+
+    if ($approvalStatus === 'rejected') {
+        return 'Your borrower account was rejected during student ID review. Please contact the library admin.';
+    }
+
+    return 'Your account is registered, but the email address still needs verification before borrower login.';
 }
 

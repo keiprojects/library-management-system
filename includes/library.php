@@ -34,13 +34,15 @@ function find_user_by_id(int $userId): ?array
 function create_borrower_account(array $data): array
 {
     $pdo = db();
+    $markVerified = (bool) ($data['mark_verified'] ?? false);
+    $approvalStatus = (string) ($data['approval_status'] ?? 'approved');
 
     try {
         $pdo->beginTransaction();
 
         $userStatement = $pdo->prepare(
-            'INSERT INTO users (name, email, password, role, created_at)
-             VALUES (:name, :email, :password, :role, NOW())'
+            'INSERT INTO users (name, email, password, role, approval_status, email_verified_at, created_at)
+             VALUES (:name, :email, :password, :role, :approval_status, :email_verified_at, NOW())'
         );
 
         $userStatement->execute([
@@ -48,13 +50,15 @@ function create_borrower_account(array $data): array
             'email' => $data['email'],
             'password' => password_hash($data['password'], PASSWORD_DEFAULT),
             'role' => 'borrower',
+            'approval_status' => $approvalStatus,
+            'email_verified_at' => $markVerified ? date('Y-m-d H:i:s') : null,
         ]);
 
         $userId = (int) $pdo->lastInsertId();
 
         $profileStatement = $pdo->prepare(
-            'INSERT INTO borrower_profiles (user_id, student_id, course, year_level, contact_info, created_at)
-             VALUES (:user_id, :student_id, :course, :year_level, :contact_info, NOW())'
+            'INSERT INTO borrower_profiles (user_id, student_id, course, year_level, contact_info, student_id_card_path, created_at)
+             VALUES (:user_id, :student_id, :course, :year_level, :contact_info, :student_id_card_path, NOW())'
         );
 
         $profileStatement->execute([
@@ -63,6 +67,7 @@ function create_borrower_account(array $data): array
             'course' => $data['course'],
             'year_level' => $data['year_level'],
             'contact_info' => $data['contact_info'],
+            'student_id_card_path' => $data['student_id_card_path'] ?? null,
         ]);
 
         $pdo->commit();
@@ -91,7 +96,7 @@ function create_borrower_account(array $data): array
 function get_borrower_profile(int $userId): ?array
 {
     $statement = db()->prepare(
-        'SELECT u.id AS user_id, u.name, u.email, u.role, bp.student_id, bp.course, bp.year_level, bp.contact_info
+        'SELECT u.id AS user_id, u.name, u.email, u.role, u.approval_status, bp.student_id, bp.course, bp.year_level, bp.contact_info, bp.student_id_card_path
          FROM users u
          INNER JOIN borrower_profiles bp ON bp.user_id = u.id
          WHERE u.id = :user_id
@@ -110,7 +115,7 @@ function get_borrower_profile(int $userId): ?array
  */
 function get_borrowers(string $search = ''): array
 {
-    $sql = 'SELECT u.id AS user_id, u.name, u.email, bp.student_id, bp.course, bp.year_level, bp.contact_info
+    $sql = 'SELECT u.id AS user_id, u.name, u.email, u.approval_status, bp.student_id, bp.course, bp.year_level, bp.contact_info, bp.student_id_card_path
             FROM users u
             INNER JOIN borrower_profiles bp ON bp.user_id = u.id
             WHERE u.role = :role';
@@ -147,15 +152,16 @@ function update_borrower(int $userId, array $data): array
     try {
         $pdo->beginTransaction();
 
-        $sql = 'UPDATE users SET name = :name, email = :email WHERE id = :id';
+        $sql = 'UPDATE users SET name = :name, email = :email, approval_status = :approval_status WHERE id = :id';
         $params = [
             'name' => $data['name'],
             'email' => $data['email'],
+            'approval_status' => $data['approval_status'] ?? 'approved',
             'id' => $userId,
         ];
 
         if (!empty($data['password'])) {
-            $sql = 'UPDATE users SET name = :name, email = :email, password = :password WHERE id = :id';
+            $sql = 'UPDATE users SET name = :name, email = :email, approval_status = :approval_status, password = :password WHERE id = :id';
             $params['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
         }
 
@@ -164,7 +170,7 @@ function update_borrower(int $userId, array $data): array
 
         $profileStatement = $pdo->prepare(
             'UPDATE borrower_profiles
-             SET student_id = :student_id, course = :course, year_level = :year_level, contact_info = :contact_info
+             SET student_id = :student_id, course = :course, year_level = :year_level, contact_info = :contact_info, student_id_card_path = :student_id_card_path
              WHERE user_id = :user_id'
         );
         $profileStatement->execute([
@@ -172,6 +178,7 @@ function update_borrower(int $userId, array $data): array
             'course' => $data['course'],
             'year_level' => $data['year_level'],
             'contact_info' => $data['contact_info'],
+            'student_id_card_path' => $data['student_id_card_path'] ?? null,
             'user_id' => $userId,
         ]);
 
@@ -191,6 +198,81 @@ function update_borrower(int $userId, array $data): array
             'message' => 'Unable to update borrower details. Please check for duplicate email or student ID.',
         ];
     }
+}
+
+/**
+ * Stores an uploaded student ID image inside the public uploads folder.
+ *
+ * @param array<string,mixed> $file
+ * @return array{success:bool,message:string,path:string|null}
+ */
+function store_student_id_upload(array $file): array
+{
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        return [
+            'success' => false,
+            'message' => 'Please upload a student ID image.',
+            'path' => null,
+        ];
+    }
+
+    $tmpName = (string) ($file['tmp_name'] ?? '');
+    $originalName = (string) ($file['name'] ?? '');
+    $size = (int) ($file['size'] ?? 0);
+
+    if ($tmpName === '' || !is_uploaded_file($tmpName)) {
+        return [
+            'success' => false,
+            'message' => 'The uploaded student ID file is invalid.',
+            'path' => null,
+        ];
+    }
+
+    if ($size > 5 * 1024 * 1024) {
+        return [
+            'success' => false,
+            'message' => 'Student ID uploads must be 5 MB or smaller.',
+            'path' => null,
+        ];
+    }
+
+    $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+    $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+
+    if (!in_array($extension, $allowedExtensions, true)) {
+        return [
+            'success' => false,
+            'message' => 'Student ID uploads must be JPG, PNG, or WEBP images.',
+            'path' => null,
+        ];
+    }
+
+    $uploadDirectory = dirname(__DIR__) . '/uploads/student-ids';
+
+    if (!is_dir($uploadDirectory) && !mkdir($uploadDirectory, 0777, true) && !is_dir($uploadDirectory)) {
+        return [
+            'success' => false,
+            'message' => 'Unable to prepare the student ID upload folder.',
+            'path' => null,
+        ];
+    }
+
+    $fileName = bin2hex(random_bytes(16)) . '.' . $extension;
+    $destination = $uploadDirectory . '/' . $fileName;
+
+    if (!move_uploaded_file($tmpName, $destination)) {
+        return [
+            'success' => false,
+            'message' => 'Unable to save the uploaded student ID image.',
+            'path' => null,
+        ];
+    }
+
+    return [
+        'success' => true,
+        'message' => 'Student ID uploaded successfully.',
+        'path' => 'uploads/student-ids/' . $fileName,
+    ];
 }
 
 /**
@@ -415,6 +497,7 @@ function get_admin_dashboard_stats(): array
         'available_books' => (int) db()->query('SELECT COALESCE(SUM(available_quantity), 0) FROM books')->fetchColumn(),
         'borrowed_books' => (int) db()->query("SELECT COUNT(*) FROM borrow_records WHERE status IN ('borrowed', 'overdue')")->fetchColumn(),
         'overdue_books' => (int) db()->query("SELECT COUNT(*) FROM borrow_records WHERE status = 'overdue'")->fetchColumn(),
+        'pending_borrowers' => (int) db()->query("SELECT COUNT(*) FROM users WHERE role = 'borrower' AND approval_status = 'pending'")->fetchColumn(),
     ];
 }
 
@@ -476,7 +559,7 @@ function get_borrower_options(): array
         'SELECT u.id, u.name, bp.student_id
          FROM users u
          INNER JOIN borrower_profiles bp ON bp.user_id = u.id
-         WHERE u.role = "borrower"
+         WHERE u.role = "borrower" AND u.approval_status = "approved"
          ORDER BY u.name ASC'
     )->fetchAll();
 }

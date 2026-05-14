@@ -37,12 +37,23 @@ if (is_post()) {
         $errors[] = 'Please provide a valid email address.';
     }
 
+    if (!value_in_options($form['course'], course_options())) {
+        $errors[] = 'Please choose a valid course.';
+    }
+
+    if (!value_in_options($form['year_level'], year_level_options())) {
+        $errors[] = 'Please choose a valid year level.';
+    }
+
     if (strlen($password) < 6) {
         $errors[] = 'Password must be at least 6 characters long.';
     }
 
     if ($errors === []) {
-        $result = create_borrower_account($form + ['password' => $password]);
+        $result = create_borrower_account($form + [
+            'password' => $password,
+            'mark_verified' => true,
+        ]);
 
         if ($result['success']) {
             flash('success', $result['message']);
@@ -86,11 +97,21 @@ render_app_start('Add Borrower', 'borrowers');
         </div>
         <div>
             <label for="course" class="label-text">Course</label>
-            <input type="text" id="course" name="course" class="input-field" value="<?= e($form['course']) ?>">
+            <select id="course" name="course" class="input-field">
+                <option value="">Select a course</option>
+                <?php foreach (course_options() as $course): ?>
+                    <option value="<?= e($course) ?>" <?= selected($form['course'], $course) ?>><?= e($course) ?></option>
+                <?php endforeach; ?>
+            </select>
         </div>
         <div>
             <label for="year_level" class="label-text">Year Level</label>
-            <input type="text" id="year_level" name="year_level" class="input-field" value="<?= e($form['year_level']) ?>">
+            <select id="year_level" name="year_level" class="input-field">
+                <option value="">Select a year level</option>
+                <?php foreach (year_level_options() as $yearLevel): ?>
+                    <option value="<?= e($yearLevel) ?>" <?= selected($form['year_level'], $yearLevel) ?>><?= e($yearLevel) ?></option>
+                <?php endforeach; ?>
+            </select>
         </div>
         <div class="md:col-span-2">
             <label for="contact_info" class="label-text">Contact Information</label>

@@ -15,6 +15,7 @@ $form = [
     'contact_info' => '',
 ];
 $errors = [];
+$uploadedStudentIdPath = null;
 
 if (is_post()) {
     $form = [
@@ -38,6 +39,14 @@ if (is_post()) {
         $errors[] = 'Please provide a valid email address.';
     }
 
+    if (!value_in_options($form['course'], course_options())) {
+        $errors[] = 'Please choose a valid course.';
+    }
+
+    if (!value_in_options($form['year_level'], year_level_options())) {
+        $errors[] = 'Please choose a valid year level.';
+    }
+
     if (strlen($password) < 6) {
         $errors[] = 'Password must be at least 6 characters long.';
     }
@@ -46,15 +55,68 @@ if (is_post()) {
         $errors[] = 'Password confirmation does not match.';
     }
 
+    if (!isset($_FILES['student_id_card']) || (int) ($_FILES['student_id_card']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        $errors[] = 'Student ID image is required for admin verification.';
+    }
+
     if ($errors === []) {
-        $result = create_borrower_account($form + ['password' => $password]);
+        $uploadResult = store_student_id_upload($_FILES['student_id_card']);
+
+        if (!$uploadResult['success']) {
+            $errors[] = $uploadResult['message'];
+        } else {
+            $uploadedStudentIdPath = $uploadResult['path'];
+        }
+    }
+
+    if ($errors === []) {
+        $requiresVerification = email_requires_verification($form['email']);
+        $result = create_borrower_account($form + [
+            'password' => $password,
+            'approval_status' => 'pending',
+            'mark_verified' => !$requiresVerification,
+            'student_id_card_path' => $uploadedStudentIdPath,
+        ]);
 
         if ($result['success']) {
-            flash('success', 'Registration successful. You can now log in.');
-            redirect('login.php');
+            if ($requiresVerification) {
+                $tokenResult = issue_email_verification((int) $result['user_id']);
+
+                if (!$tokenResult['success'] || $tokenResult['token'] === null) {
+                    flash('error', 'Registration completed, but verification setup failed. ' . $tokenResult['message']);
+                    redirect('resend-verification.php');
+                } else {
+                    $user = find_user_by_id((int) $result['user_id']);
+                    $mailResult = $user !== null ? send_verification_email($user, $tokenResult['token']) : [
+                        'success' => false,
+                        'message' => 'Unable to load the new borrower account for email sending.',
+                    ];
+
+                    if ($mailResult['success']) {
+                        flash('success', 'Registration successful. Check your email if verification is enabled, then wait for admin approval of your student ID before logging in.');
+                        redirect('login.php');
+                    }
+
+                    flash('error', 'Registration completed, but the verification email could not be sent. ' . $mailResult['message']);
+                    redirect('resend-verification.php');
+                }
+            } else {
+                flash('success', 'Registration successful. Your borrower account is now pending admin approval after student ID review.');
+                redirect('login.php');
+            }
         }
 
-        $errors[] = $result['message'];
+        if (!$result['success']) {
+            if ($uploadedStudentIdPath !== null) {
+                $savedFile = __DIR__ . '/' . $uploadedStudentIdPath;
+
+                if (is_file($savedFile)) {
+                    unlink($savedFile);
+                }
+            }
+
+            $errors[] = $result['message'];
+        }
     }
 }
 
@@ -77,7 +139,7 @@ render_auth_start('Register');
         </div>
     <?php endif; ?>
 
-    <form method="post" class="grid gap-5 md:grid-cols-2">
+    <form method="post" enctype="multipart/form-data" class="grid gap-5 md:grid-cols-2">
         <div class="md:col-span-2">
             <label for="name" class="label-text">Full Name</label>
             <input type="text" id="name" name="name" class="input-field" value="<?= e($form['name']) ?>" placeholder="Juan Dela Cruz">
@@ -92,15 +154,30 @@ render_auth_start('Register');
         </div>
         <div>
             <label for="course" class="label-text">Course</label>
-            <input type="text" id="course" name="course" class="input-field" value="<?= e($form['course']) ?>" placeholder="BS Information Technology">
+            <select id="course" name="course" class="input-field">
+                <option value="">Select a course</option>
+                <?php foreach (course_options() as $course): ?>
+                    <option value="<?= e($course) ?>" <?= selected($form['course'], $course) ?>><?= e($course) ?></option>
+                <?php endforeach; ?>
+            </select>
         </div>
         <div>
             <label for="year_level" class="label-text">Year Level</label>
-            <input type="text" id="year_level" name="year_level" class="input-field" value="<?= e($form['year_level']) ?>" placeholder="3rd Year">
+            <select id="year_level" name="year_level" class="input-field">
+                <option value="">Select a year level</option>
+                <?php foreach (year_level_options() as $yearLevel): ?>
+                    <option value="<?= e($yearLevel) ?>" <?= selected($form['year_level'], $yearLevel) ?>><?= e($yearLevel) ?></option>
+                <?php endforeach; ?>
+            </select>
         </div>
         <div class="md:col-span-2">
             <label for="contact_info" class="label-text">Contact Information</label>
             <input type="text" id="contact_info" name="contact_info" class="input-field" value="<?= e($form['contact_info']) ?>" placeholder="09xx xxx xxxx">
+        </div>
+        <div class="md:col-span-2">
+            <label for="student_id_card" class="label-text">Student ID Image</label>
+            <input type="file" id="student_id_card" name="student_id_card" class="input-field" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+            <p class="mt-2 text-xs text-slate-500">Upload a clear photo or scan of your school ID for admin verification.</p>
         </div>
         <div>
             <label for="password" class="label-text">Password</label>
