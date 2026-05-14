@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Library Management System | Defense Presentation</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #111827;
+      --accent: #38bdf8;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, Segoe UI, Arial, sans-serif;
+      background: linear-gradient(135deg, #020617, #0f172a 45%, #1e293b);
+      color: var(--text);
+      line-height: 1.55;
+    }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 36px 20px 80px; }
+    .hero {
+      background: rgba(17,24,39,.75);
+      border: 1px solid rgba(148,163,184,.25);
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 20px 45px rgba(2,6,23,.45);
+      margin-bottom: 22px;
+    }
+    h1, h2, h3 { margin: 0 0 10px; }
+    h1 { font-size: 2rem; }
+    h2 { font-size: 1.3rem; color: var(--accent); }
+    p { margin: 0 0 10px; color: var(--text); }
+    .muted { color: var(--muted); }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .card {
+      background: rgba(17,24,39,.78);
+      border: 1px solid rgba(148,163,184,.22);
+      border-radius: 14px;
+      padding: 18px;
+    }
+    ul { margin: 8px 0 0 20px; padding: 0; }
+    code {
+      background: #0b1220;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 2px 7px;
+      color: #93c5fd;
+      font-size: .92rem;
+    }
+    .flow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+    .step {
+      background: #082f49;
+      color: #bae6fd;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid #0ea5e9;
+      font-size: .9rem;
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <h1>Library Management System</h1>
+      <p class="muted">Documentation + Defense Presentation Page</p>
+      <p>This page is prepared for student capstone/thesis defense to explain the system scope, architecture, user flow, and quick demo runbook.</p>
+      <div class="flow">
+        <span class="step">1) Setup</span>
+        <span class="step">2) Demo Login</span>
+        <span class="step">3) Borrow & Return</span>
+        <span class="step">4) Reports</span>
+        <span class="step">5) Q&amp;A</span>
+      </div>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <h2>Project Overview</h2>
+        <ul>
+          <li>Role-based system with <strong>Admin</strong> and <strong>Borrower</strong> accounts.</li>
+          <li>Tracks books, borrowers, borrow records, returns, and penalties.</li>
+          <li>Supports borrower registration with student ID upload and approval workflow.</li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <h2>Tech Stack</h2>
+        <ul>
+          <li>PHP 8+, MySQL 8+</li>
+          <li>Tailwind CSS (CDN), Vanilla JavaScript</li>
+          <li>XAMPP-friendly deployment for school labs</li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <h2>How to Start (Quick Guide)</h2>
+        <ul>
+          <li>Start <code>Apache</code> and <code>MySQL</code> in XAMPP.</li>
+          <li>Create DB: <code>library_management_system</code>.</li>
+          <li>Import <code>database/schema.sql</code>, then <code>database/seed.sql</code>.</li>
+          <li>Open <code>http://localhost/library-management-system/login.php</code>.</li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <h2>Demo Credentials</h2>
+        <p><strong>Admin Account</strong></p>
+        <ul>
+          <li>Email: <code>admin@libraryms.test</code></li>
+          <li>Password: <code>admin123</code></li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <h2>Defense Demo Script</h2>
+        <ul>
+          <li>Login as admin and explain dashboard metrics.</li>
+          <li>Add or edit a sample book record.</li>
+          <li>Create/approve borrower profile.</li>
+          <li>Borrow and return a book to show due-date/penalty logic.</li>
+          <li>Open report pages (borrowed, overdue, returned, most-borrowed).</li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <h2>Repository Docs</h2>
+        <ul>
+          <li><code>docs/README.md</code> - docs index and structure</li>
+          <li><code>docs/GETTING_STARTED.md</code> - startup instructions</li>
+          <li><code>docs/DEFENSE_GUIDE.md</code> - defense flow and speaking points</li>
+          <li><code>docs/defense-presentation.html</code> - this presentation page</li>
+        </ul>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
