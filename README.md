@@ -125,9 +125,9 @@ For email verification links, also set the full public/base URL used by your bro
 APP_PUBLIC_URL=http://localhost/library-management-system
 ```
 
-### 5. Configure Gmail SMTP for the presenter account
+### 5. Configure Gmail SMTP for a system email account
 
-Use one Gmail account owned by the presenter for the live demo.
+Use a dedicated Gmail account for system email delivery.
 
 1. Turn on 2-Step Verification in that Google account.
 2. Create an App Password in Google Account settings.
@@ -138,9 +138,9 @@ Example:
 ```env
 MAIL_HOST=smtp.gmail.com
 MAIL_PORT=587
-MAIL_USERNAME=presenter@gmail.com
+MAIL_USERNAME=library.notifications@gmail.com
 MAIL_PASSWORD=your_16_character_app_password
-MAIL_FROM_EMAIL=presenter@gmail.com
+MAIL_FROM_EMAIL=library.notifications@gmail.com
 MAIL_FROM_NAME=Library Management System
 MAIL_ENCRYPTION=tls
 ```
@@ -228,7 +228,7 @@ Borrowers can:
 - Shared logic is stored in `includes/` so the page files stay easier to follow.
 - Tailwind CSS is loaded from the CDN, so you do not need Node.js just to style the app.
 - Small JavaScript is only used for basic UI behavior like the mobile menu and confirmation prompts.
-- SMTP delivery is handled directly by the app, so there is no Composer dependency required for the classroom demo.
+- SMTP delivery is handled directly by the app, so there is no Composer dependency required for the deployment.
 - Registration, admin borrower create, and admin borrower edit now use shared dropdown options for `course` and `year_level`.
 - Uploaded student IDs are stored in `uploads/student-ids/`.
 

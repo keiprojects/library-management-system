@@ -66,7 +66,7 @@ render_auth_start('Login');
     <form method="post" class="grid gap-5">
         <div>
             <label for="email" class="label-text">Email Address</label>
-            <input type="email" id="email" name="email" class="input-field" value="<?= e($email) ?>" placeholder="student@example.com">
+            <input type="email" id="email" name="email" class="input-field" value="<?= e($email) ?>" placeholder="borrower@school.edu">
         </div>
         <div>
             <label for="password" class="label-text">Password</label>
