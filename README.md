@@ -144,6 +144,9 @@ APP_URL=/library-management-system
 APP_PUBLIC_URL=http://localhost/library-management-system
 ```
 
+### 5. Configure Gmail SMTP for a system email account
+
+Use a dedicated Gmail account for system email delivery.
 ### Step 5 — Configure Demo Email (Optional but Useful for Presentation)
 
 If showing email verification in class:
@@ -158,9 +161,9 @@ Example:
 ```env
 MAIL_HOST=smtp.gmail.com
 MAIL_PORT=587
-MAIL_USERNAME=presenter@gmail.com
+MAIL_USERNAME=library.notifications@gmail.com
 MAIL_PASSWORD=your_16_character_app_password
-MAIL_FROM_EMAIL=presenter@gmail.com
+MAIL_FROM_EMAIL=library.notifications@gmail.com
 MAIL_FROM_NAME=Library Management System
 MAIL_ENCRYPTION=tls
 ```
@@ -331,6 +334,28 @@ Can:
 - Verify email (if enabled)
 - Login/logout
 - View available books
+- View currently borrowed books
+- Check due dates and overdue status
+- Review returned book history
+
+## Implementation Notes
+
+- The code includes comments above non-trivial functions to explain what each helper does.
+- Shared logic is stored in `includes/` so the page files stay easier to follow.
+- Tailwind CSS is loaded from the CDN, so you do not need Node.js just to style the app.
+- Small JavaScript is only used for basic UI behavior like the mobile menu and confirmation prompts.
+- SMTP delivery is handled directly by the app, so there is no Composer dependency required for the deployment.
+- Registration, admin borrower create, and admin borrower edit now use shared dropdown options for `course` and `year_level`.
+- Uploaded student IDs are stored in `uploads/student-ids/`.
+
+## Common Troubleshooting
+
+- If the database does not connect, recheck `.env`.
+- If page links look broken, verify `APP_URL`.
+- If the admin cannot log in, confirm that `database/seed.sql` was imported.
+- If MySQL reports duplicate values, check whether the email, student ID, or ISBN already exists.
+- If Gmail does not send, confirm that you used a Google App Password instead of the normal Gmail password.
+- If verification links fail, check that the `users` table includes the new verification columns.
 
 ---
 

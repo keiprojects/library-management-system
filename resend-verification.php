@@ -53,7 +53,7 @@ render_auth_start('Resend Verification');
     <div class="mb-8">
         <p class="text-sm uppercase tracking-[0.3em] text-library-ink/50">Borrower Verification</p>
         <h2 class="mt-3 text-3xl font-semibold text-library-ink">Resend verification email</h2>
-        <p class="mt-3 text-sm leading-6 text-slate-600">Use this if the presenter-owned borrower account did not receive the first verification email.</p>
+        <p class="mt-3 text-sm leading-6 text-slate-600">Use this form if a borrower did not receive the original verification email.</p>
     </div>
 
     <?php if ($errors !== []): ?>
@@ -69,7 +69,7 @@ render_auth_start('Resend Verification');
     <form method="post" class="grid gap-5">
         <div>
             <label for="email" class="label-text">Email Address</label>
-            <input type="email" id="email" name="email" class="input-field" value="<?= e($email) ?>" placeholder="presenter@gmail.com">
+            <input type="email" id="email" name="email" class="input-field" value="<?= e($email) ?>" placeholder="borrower@school.edu">
         </div>
         <button type="submit" class="btn-primary w-full">Send Verification Email Again</button>
     </form>

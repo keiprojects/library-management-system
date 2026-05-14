@@ -126,7 +126,7 @@ render_auth_start('Register');
     <div class="mb-8">
         <p class="text-sm uppercase tracking-[0.3em] text-library-ink/50">Borrower Registration</p>
         <h2 class="mt-3 text-3xl font-semibold text-library-ink">Create a borrower account</h2>
-        <p class="mt-3 text-sm leading-6 text-slate-600">Students can sign up here to browse books and monitor borrowed items.</p>
+        <p class="mt-3 text-sm leading-6 text-slate-600">Borrowers can register here to access the catalog and monitor active loans.</p>
     </div>
 
     <?php if ($errors !== []): ?>
@@ -146,11 +146,11 @@ render_auth_start('Register');
         </div>
         <div>
             <label for="email" class="label-text">Email Address</label>
-            <input type="email" id="email" name="email" class="input-field" value="<?= e($form['email']) ?>" placeholder="student@example.com">
+            <input type="email" id="email" name="email" class="input-field" value="<?= e($form['email']) ?>" placeholder="borrower@school.edu">
         </div>
         <div>
             <label for="student_id" class="label-text">Student ID</label>
-            <input type="text" id="student_id" name="student_id" class="input-field" value="<?= e($form['student_id']) ?>" placeholder="2024-00001">
+            <input type="text" id="student_id" name="student_id" class="input-field" value="<?= e($form['student_id']) ?>" placeholder="2026-000123">
         </div>
         <div>
             <label for="course" class="label-text">Course</label>
@@ -172,7 +172,7 @@ render_auth_start('Register');
         </div>
         <div class="md:col-span-2">
             <label for="contact_info" class="label-text">Contact Information</label>
-            <input type="text" id="contact_info" name="contact_info" class="input-field" value="<?= e($form['contact_info']) ?>" placeholder="09xx xxx xxxx">
+            <input type="text" id="contact_info" name="contact_info" class="input-field" value="<?= e($form['contact_info']) ?>" placeholder="+1 555 010 1234">
         </div>
         <div class="md:col-span-2">
             <label for="student_id_card" class="label-text">Student ID Image</label>
