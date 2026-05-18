@@ -9,6 +9,8 @@ require_admin();
 $borrowers = get_borrower_options();
 $books = get_books('', true);
 $activeRecords = get_active_borrow_records();
+$reservationSearch = trim($_GET['reservation_search'] ?? '');
+$pendingReservations = get_pending_reservations($reservationSearch);
 $errors = [];
 $form = [
     'user_id' => '',
@@ -17,6 +19,14 @@ $form = [
 ];
 
 if (is_post()) {
+    if (($_POST['action'] ?? '') === 'approve_reservation') {
+        $reservationId = (int) ($_POST['reservation_id'] ?? 0);
+        $dueDate = trim($_POST['due_date'] ?? date('Y-m-d', strtotime('+7 days')));
+        $result = approve_reservation($reservationId, $dueDate);
+        flash($result['success'] ? 'success' : 'error', $result['message']);
+        redirect('admin/transactions/borrow.php');
+    }
+
     $form = [
         'user_id' => trim($_POST['user_id'] ?? ''),
         'book_id' => trim($_POST['book_id'] ?? ''),
@@ -136,6 +146,59 @@ render_app_start('Borrow Book', 'borrow');
         </div>
     </div>
 </section>
+
+<section class="panel mt-8 overflow-hidden">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+            <p class="text-sm uppercase tracking-[0.25em] text-slate-500">Student Reservations</p>
+            <h3 class="mt-2 text-2xl font-semibold text-library-ink">Approve reserved books</h3>
+        </div>
+        <form method="get" class="flex gap-3">
+            <input type="text" name="reservation_search" value="<?= e($reservationSearch) ?>" class="input-field min-w-[220px]" placeholder="Search borrower or book...">
+            <button type="submit" class="btn-secondary">Search</button>
+        </form>
+    </div>
+    <div class="mt-6 overflow-x-auto">
+        <table class="data-table">
+            <thead>
+                <tr class="text-left text-xs uppercase tracking-[0.25em] text-slate-500">
+                    <th class="px-3 py-3">Borrower</th>
+                    <th class="px-3 py-3">Book</th>
+                    <th class="px-3 py-3">Requested</th>
+                    <th class="px-3 py-3">Due Date</th>
+                    <th class="px-3 py-3">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                <?php if ($pendingReservations === []): ?>
+                    <tr><td colspan="5" class="px-3 py-6 text-center text-slate-500">No pending reservations found.</td></tr>
+                <?php endif; ?>
+                <?php foreach ($pendingReservations as $reservation): ?>
+                    <tr>
+                        <td class="px-3 py-4">
+                            <p class="font-semibold text-library-ink"><?= e($reservation['name']) ?></p>
+                            <p class="text-xs text-slate-500"><?= e($reservation['student_id']) ?></p>
+                        </td>
+                        <td class="px-3 py-4">
+                            <p><?= e($reservation['title']) ?></p>
+                            <p class="text-xs text-slate-500"><?= e((string) $reservation['available_quantity']) ?> available</p>
+                        </td>
+                        <td class="px-3 py-4"><?= e(format_date((string) $reservation['created_at'])) ?></td>
+                        <td class="px-3 py-4">
+                            <form method="post" class="flex items-center gap-2">
+                                <input type="hidden" name="action" value="approve_reservation">
+                                <input type="hidden" name="reservation_id" value="<?= e((string) $reservation['id']) ?>">
+                                <input type="date" name="due_date" class="input-field !py-2" value="<?= e(date('Y-m-d', strtotime('+7 days'))) ?>">
+                        </td>
+                        <td class="px-3 py-4">
+                                <button type="submit" class="btn-primary" data-confirm="Approve this reservation and create a borrow record?">Approve</button>
+                            </form>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</section>
 <?php
 render_app_end();
-

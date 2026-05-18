@@ -173,7 +173,7 @@ function render_auth_end(): void
  */
 function navigation_links(string $role): array
 {
-    if ($role === 'admin') {
+    if (in_array($role, ['admin', 'super_admin'], true)) {
         return [
             ['label' => 'Dashboard', 'href' => 'admin/dashboard.php', 'key' => 'dashboard'],
             ['label' => 'Books', 'href' => 'admin/books/index.php', 'key' => 'books'],
@@ -209,7 +209,7 @@ function render_app_start(string $title, string $activeKey): void
     <div class="min-h-screen lg:grid lg:grid-cols-[280px_1fr]">
         <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 -translate-x-full border-r border-white/60 bg-library-paper px-6 py-8 transition duration-300 lg:static lg:w-auto lg:translate-x-0">
             <div class="mb-8">
-                <p class="text-xs uppercase tracking-[0.3em] text-library-ink/50"><?= $role === 'admin' ? 'Admin / Librarian' : 'Student / Borrower' ?></p>
+                <p class="text-xs uppercase tracking-[0.3em] text-library-ink/50"><?= in_array($role, ['admin', 'super_admin'], true) ? 'Admin / Librarian' : 'Student / Borrower' ?></p>
                 <h1 class="mt-3 text-2xl font-semibold text-library-ink">Library MS</h1>
                 <p class="mt-2 text-sm text-slate-600">Simple, practical, and ready for classroom presentation.</p>
             </div>
@@ -231,7 +231,7 @@ function render_app_start(string $title, string $activeKey): void
                 <div class="flex items-center justify-between gap-4">
                     <div>
                         <button type="button" id="sidebarToggle" class="mb-3 inline-flex rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 lg:hidden">Menu</button>
-                        <p class="text-sm uppercase tracking-[0.3em] text-library-ink/45"><?= $role === 'admin' ? 'Library Operations' : 'Student Portal' ?></p>
+                        <p class="text-sm uppercase tracking-[0.3em] text-library-ink/45"><?= in_array($role, ['admin', 'super_admin'], true) ? 'Library Operations' : 'Student Portal' ?></p>
                         <h2 class="mt-1 text-2xl font-semibold text-library-ink"><?= e($title) ?></h2>
                     </div>
                     <div class="hidden text-right md:block">
@@ -283,4 +283,3 @@ function render_app_end(): void
     </html>
     <?php
 }
-

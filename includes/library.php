@@ -70,6 +70,20 @@ function create_borrower_account(array $data): array
             'student_id_card_path' => $data['student_id_card_path'] ?? null,
         ]);
 
+        $studentStatement = $pdo->prepare(
+            'INSERT INTO students (user_id, student_id, course, year_level, contact_info, status, created_at)
+             VALUES (:user_id, :student_id, :course, :year_level, :contact_info, :status, NOW())'
+        );
+
+        $studentStatement->execute([
+            'user_id' => $userId,
+            'student_id' => $data['student_id'],
+            'course' => $data['course'],
+            'year_level' => $data['year_level'],
+            'contact_info' => $data['contact_info'],
+            'status' => 'active',
+        ]);
+
         $pdo->commit();
 
         return [
@@ -812,4 +826,120 @@ function get_most_borrowed_books(): array
          GROUP BY b.id, b.title, b.author, b.category
          ORDER BY borrow_count DESC, b.title ASC'
     )->fetchAll();
+}
+
+
+/**
+ * Returns all cart items for a borrower.
+ *
+ * @return list<array<string,mixed>>
+ */
+function get_reservation_cart_items(int $userId): array
+{
+    $statement = db()->prepare(
+        "SELECT rci.id, rci.book_id, rci.status, rci.created_at, b.title, b.author, b.isbn, b.category, b.available_quantity
+         FROM reservation_cart_items rci
+         INNER JOIN books b ON b.id = rci.book_id
+         WHERE rci.user_id = :user_id AND rci.status = 'in_cart'
+         ORDER BY rci.created_at DESC"
+    );
+    $statement->execute(['user_id' => $userId]);
+
+    return $statement->fetchAll();
+}
+
+/**
+ * Adds a book to a borrower's reservation cart.
+ *
+ * @return array{success:bool,message:string}
+ */
+function add_book_to_cart(int $userId, int $bookId): array
+{
+    $book = get_book($bookId);
+
+    if ($book === null || (int) $book['available_quantity'] <= 0) {
+        return ['success' => false, 'message' => 'Book is unavailable for reservation.'];
+    }
+
+    try {
+        $statement = db()->prepare(
+            "INSERT INTO reservation_cart_items (user_id, book_id, status, created_at)
+             VALUES (:user_id, :book_id, 'in_cart', NOW())"
+        );
+        $statement->execute(['user_id' => $userId, 'book_id' => $bookId]);
+
+        return ['success' => true, 'message' => 'Book added to reservation cart.'];
+    } catch (Throwable $exception) {
+        return ['success' => false, 'message' => 'This book is already in your reservation cart.'];
+    }
+}
+
+/**
+ * Removes an item from a borrower's reservation cart.
+ */
+function remove_book_from_cart(int $userId, int $cartItemId): void
+{
+    $statement = db()->prepare('DELETE FROM reservation_cart_items WHERE id = :id AND user_id = :user_id AND status = "in_cart"');
+    $statement->execute(['id' => $cartItemId, 'user_id' => $userId]);
+}
+
+/**
+ * Returns pending cart reservations for admin processing.
+ *
+ * @return list<array<string,mixed>>
+ */
+function get_pending_reservations(string $search = ''): array
+{
+    $sql = "SELECT rci.id, rci.user_id, rci.book_id, rci.created_at, u.name, u.email, bp.student_id, b.title, b.author, b.available_quantity
+            FROM reservation_cart_items rci
+            INNER JOIN users u ON u.id = rci.user_id
+            INNER JOIN borrower_profiles bp ON bp.user_id = u.id
+            INNER JOIN books b ON b.id = rci.book_id
+            WHERE rci.status = 'in_cart'";
+    $params = [];
+
+    if ($search !== '') {
+        $sql .= ' AND (u.name LIKE :search OR bp.student_id LIKE :search OR b.title LIKE :search)';
+        $params['search'] = '%' . $search . '%';
+    }
+
+    $sql .= ' ORDER BY rci.created_at ASC';
+
+    $statement = db()->prepare($sql);
+    $statement->execute($params);
+
+    return $statement->fetchAll();
+}
+
+/**
+ * Approves one reservation by creating a borrow record and marking it reserved.
+ *
+ * @return array{success:bool,message:string}
+ */
+function approve_reservation(int $reservationId, string $dueDate): array
+{
+    $pdo = db();
+    $reservationStmt = $pdo->prepare(
+        "SELECT rci.id, rci.user_id, rci.book_id, rci.status, b.available_quantity
+         FROM reservation_cart_items rci
+         INNER JOIN books b ON b.id = rci.book_id
+         WHERE rci.id = :id
+         LIMIT 1"
+    );
+    $reservationStmt->execute(['id' => $reservationId]);
+    $reservation = $reservationStmt->fetch();
+
+    if (!$reservation || $reservation['status'] !== 'in_cart') {
+        return ['success' => false, 'message' => 'Reservation no longer available.'];
+    }
+
+    $result = borrow_book((int) $reservation['user_id'], (int) $reservation['book_id'], $dueDate);
+    if (!$result['success']) {
+        return $result;
+    }
+
+    $updateStmt = $pdo->prepare("UPDATE reservation_cart_items SET status = 'reserved', reserved_at = NOW() WHERE id = :id");
+    $updateStmt->execute(['id' => $reservationId]);
+
+    return ['success' => true, 'message' => 'Reservation approved and converted into a borrow record.'];
 }

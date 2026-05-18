@@ -32,7 +32,7 @@ if (is_post()) {
             } else {
                 login_user($user);
 
-                if ($user['role'] === 'admin') {
+                if (in_array($user['role'], ['admin', 'super_admin'], true)) {
                     redirect('admin/dashboard.php');
                 }
 
@@ -88,4 +88,3 @@ render_auth_start('Login');
 </div>
 <?php
 render_auth_end();
-

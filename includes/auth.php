@@ -76,13 +76,13 @@ function require_login(): void
 }
 
 /**
- * Protects admin-only pages.
+ * Protects admin-only pages (admin and super admin).
  */
 function require_admin(): void
 {
     require_login();
 
-    if ((current_user()['role'] ?? '') !== 'admin') {
+    if (!in_array((current_user()['role'] ?? ''), ['admin', 'super_admin'], true)) {
         flash('error', 'You do not have permission to access that page.');
         redirect('student/dashboard.php');
     }
@@ -112,10 +112,9 @@ function redirect_if_authenticated(): void
         return;
     }
 
-    if ($user['role'] === 'admin') {
+    if (in_array($user['role'], ['admin', 'super_admin'], true)) {
         redirect('admin/dashboard.php');
     }
 
     redirect('student/dashboard.php');
 }
-
