@@ -5,6 +5,7 @@ CREATE TABLE users (
     password VARCHAR(255) NOT NULL,
     role ENUM('super_admin', 'admin', 'borrower') NOT NULL DEFAULT 'borrower',
     approval_status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'approved',
+    account_status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
     email_verified_at DATETIME DEFAULT NULL,
     verification_token_hash VARCHAR(255) DEFAULT NULL,
     verification_token_expires_at DATETIME DEFAULT NULL,
