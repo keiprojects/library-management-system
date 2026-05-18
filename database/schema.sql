@@ -3,7 +3,7 @@ CREATE TABLE users (
     name VARCHAR(100) NOT NULL,
     email VARCHAR(120) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    role ENUM('admin', 'borrower') NOT NULL DEFAULT 'borrower',
+    role ENUM('super_admin', 'admin', 'borrower') NOT NULL DEFAULT 'borrower',
     approval_status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'approved',
     email_verified_at DATETIME DEFAULT NULL,
     verification_token_hash VARCHAR(255) DEFAULT NULL,
@@ -21,6 +21,33 @@ CREATE TABLE borrower_profiles (
     student_id_card_path VARCHAR(255) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_borrower_profiles_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE students (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL UNIQUE,
+    student_id VARCHAR(50) NOT NULL UNIQUE,
+    course VARCHAR(120) NOT NULL,
+    year_level VARCHAR(50) NOT NULL,
+    contact_info VARCHAR(120) NOT NULL,
+    status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_students_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE admin_staff (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL UNIQUE,
+    staff_id VARCHAR(50) NOT NULL UNIQUE,
+    position VARCHAR(120) NOT NULL,
+    contact_info VARCHAR(120) NOT NULL,
+    status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_admin_staff_user
         FOREIGN KEY (user_id) REFERENCES users(id)
         ON DELETE CASCADE
 );
@@ -54,9 +81,24 @@ CREATE TABLE borrow_records (
         ON DELETE CASCADE
 );
 
+CREATE TABLE reservation_cart_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    book_id INT NOT NULL,
+    status ENUM('in_cart', 'reserved', 'cancelled') NOT NULL DEFAULT 'in_cart',
+    reserved_at DATETIME DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_reservation_cart_items_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_reservation_cart_items_book
+        FOREIGN KEY (book_id) REFERENCES books(id)
+        ON DELETE CASCADE,
+    UNIQUE KEY uniq_user_book_active (user_id, book_id, status)
+);
+
 CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_books_title ON books(title);
 CREATE INDEX idx_books_category ON books(category);
 CREATE INDEX idx_borrow_records_status ON borrow_records(status);
 CREATE INDEX idx_borrow_records_due_date ON borrow_records(due_date);
-
