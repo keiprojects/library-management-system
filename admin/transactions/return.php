@@ -58,7 +58,7 @@ render_app_start('Return Book', 'return');
                         </td>
                         <td class="px-3 py-4"><?= e($record['title']) ?></td>
                         <td class="px-3 py-4"><?= e(format_date($record['borrow_date'])) ?></td>
-                        <td class="px-3 py-4"><?= e(format_date($record['due_date'])) ?></td>
+                        <td class="px-3 py-4"><?= e(format_datetime($record['due_date'])) ?></td>
                         <td class="px-3 py-4"><span class="badge <?= e(status_badge_class($record['status'])) ?>"><?= e(ucfirst($record['status'])) ?></span></td>
                         <td class="px-3 py-4"><?= e(format_money((float) $record['penalty'])) ?></td>
                         <td class="px-3 py-4">

@@ -15,13 +15,13 @@ $errors = [];
 $form = [
     'user_id' => '',
     'book_id' => '',
-    'due_date' => date('Y-m-d', strtotime('+7 days')),
+    'due_date' => date('Y-m-d\TH:i', strtotime('+7 days')),
 ];
 
 if (is_post()) {
     if (($_POST['action'] ?? '') === 'approve_reservation') {
         $reservationId = (int) ($_POST['reservation_id'] ?? 0);
-        $dueDate = trim($_POST['due_date'] ?? date('Y-m-d', strtotime('+7 days')));
+        $dueDate = trim($_POST['due_date'] ?? '');
         $result = approve_reservation($reservationId, $dueDate);
         flash($result['success'] ? 'success' : 'error', $result['message']);
         redirect('admin/transactions/borrow.php');
@@ -30,7 +30,7 @@ if (is_post()) {
     $form = [
         'user_id' => trim($_POST['user_id'] ?? ''),
         'book_id' => trim($_POST['book_id'] ?? ''),
-        'due_date' => trim($_POST['due_date'] ?? date('Y-m-d', strtotime('+7 days'))),
+        'due_date' => trim($_POST['due_date'] ?? date('Y-m-d\TH:i', strtotime('+7 days'))),
     ];
 
     if ($form['user_id'] === '') {
@@ -100,8 +100,8 @@ render_app_start('Borrow Book', 'borrow');
                 </select>
             </div>
             <div>
-                <label class="label-text" for="due_date">Due Date</label>
-                <input type="date" id="due_date" name="due_date" class="input-field" value="<?= e($form['due_date']) ?>">
+                <label class="label-text" for="due_date">Due Date and Time</label>
+                <input type="datetime-local" id="due_date" name="due_date" class="input-field" value="<?= e(datetime_local_value($form['due_date'])) ?>" min="<?= e(date('Y-m-d\TH:i')) ?>">
             </div>
             <button type="submit" class="btn-primary">Borrow Book</button>
         </form>
@@ -118,7 +118,7 @@ render_app_start('Borrow Book', 'borrow');
                     <tr class="text-left text-xs uppercase tracking-[0.25em] text-slate-500">
                         <th class="px-3 py-3">Borrower</th>
                         <th class="px-3 py-3">Book</th>
-                        <th class="px-3 py-3">Due Date</th>
+                        <th class="px-3 py-3">Due Date & Time</th>
                         <th class="px-3 py-3">Status</th>
                         <th class="px-3 py-3">Penalty</th>
                     </tr>
@@ -136,7 +136,7 @@ render_app_start('Borrow Book', 'borrow');
                                 <p class="text-xs text-slate-500"><?= e($record['student_id']) ?></p>
                             </td>
                             <td class="px-3 py-4"><?= e($record['title']) ?></td>
-                            <td class="px-3 py-4"><?= e(format_date($record['due_date'])) ?></td>
+                            <td class="px-3 py-4"><?= e(format_datetime($record['due_date'])) ?></td>
                             <td class="px-3 py-4"><span class="badge <?= e(status_badge_class($record['status'])) ?>"><?= e(ucfirst($record['status'])) ?></span></td>
                             <td class="px-3 py-4"><?= e(format_money((float) $record['penalty'])) ?></td>
                         </tr>
@@ -165,7 +165,7 @@ render_app_start('Borrow Book', 'borrow');
                     <th class="px-3 py-3">Borrower</th>
                     <th class="px-3 py-3">Book</th>
                     <th class="px-3 py-3">Requested</th>
-                    <th class="px-3 py-3">Due Date</th>
+                    <th class="px-3 py-3">Requested Return</th>
                     <th class="px-3 py-3">Action</th>
                 </tr>
             </thead>
@@ -183,12 +183,12 @@ render_app_start('Borrow Book', 'borrow');
                             <p><?= e($reservation['title']) ?></p>
                             <p class="text-xs text-slate-500"><?= e((string) $reservation['available_quantity']) ?> available</p>
                         </td>
-                        <td class="px-3 py-4"><?= e(format_date((string) $reservation['created_at'])) ?></td>
+                        <td class="px-3 py-4"><?= e(format_datetime((string) $reservation['created_at'])) ?></td>
                         <td class="px-3 py-4">
                             <form method="post" class="flex items-center gap-2">
                                 <input type="hidden" name="action" value="approve_reservation">
                                 <input type="hidden" name="reservation_id" value="<?= e((string) $reservation['id']) ?>">
-                                <input type="date" name="due_date" class="input-field !py-2" value="<?= e(date('Y-m-d', strtotime('+7 days'))) ?>">
+                                <input type="datetime-local" name="due_date" class="input-field !py-2" value="<?= e(datetime_local_value($reservation['due_date'])) ?>" min="<?= e(date('Y-m-d\TH:i')) ?>">
                         </td>
                         <td class="px-3 py-4">
                                 <button type="submit" class="btn-primary" data-confirm="Approve this reservation and create a borrow record?">Approve</button>
