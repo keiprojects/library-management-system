@@ -41,7 +41,7 @@ render_app_start('Borrowed Books', 'borrowed');
                             <p class="text-xs text-slate-500"><?= e($record['author']) ?></p>
                         </td>
                         <td class="px-3 py-4"><?= e(format_date($record['borrow_date'])) ?></td>
-                        <td class="px-3 py-4"><?= e(format_date($record['due_date'])) ?></td>
+                        <td class="px-3 py-4"><?= e(format_datetime($record['due_date'])) ?></td>
                         <td class="px-3 py-4"><span class="badge <?= e(status_badge_class($record['status'])) ?>"><?= e(ucfirst($record['status'])) ?></span></td>
                         <td class="px-3 py-4"><?= e(format_money((float) $record['penalty'])) ?></td>
                     </tr>

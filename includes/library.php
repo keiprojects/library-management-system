@@ -456,7 +456,7 @@ function delete_book(int $bookId): array
 function calculate_penalty(string $dueDate, ?string $returnDate = null): float
 {
     $due = new DateTimeImmutable($dueDate);
-    $compareDate = $returnDate ? new DateTimeImmutable($returnDate) : new DateTimeImmutable('today');
+    $compareDate = $returnDate ? new DateTimeImmutable($returnDate) : new DateTimeImmutable('now');
 
     if ($compareDate <= $due) {
         return 0.0;
@@ -478,7 +478,7 @@ function refresh_overdue_records(): void
     $records = db()->query(
         "SELECT id, due_date, status
          FROM borrow_records
-         WHERE (status = 'borrowed' AND due_date < CURDATE())
+         WHERE (status = 'borrowed' AND due_date < NOW())
             OR status = 'overdue'"
     )->fetchAll();
 
@@ -614,6 +614,7 @@ function get_active_borrow_records(string $search = ''): array
  */
 function borrow_book(int $userId, int $bookId, string $dueDate): array
 {
+    $dueDate = normalize_datetime_input($dueDate) ?? '';
     $book = get_book($bookId);
 
     if ($book === null) {
@@ -624,8 +625,12 @@ function borrow_book(int $userId, int $bookId, string $dueDate): array
         return ['success' => false, 'message' => 'This book is currently unavailable.'];
     }
 
-    if ($dueDate < date('Y-m-d')) {
-        return ['success' => false, 'message' => 'Due date cannot be earlier than today.'];
+    if ($dueDate === '') {
+        return ['success' => false, 'message' => 'Due date and time are required.'];
+    }
+
+    if ($dueDate < date('Y-m-d H:i:s')) {
+        return ['success' => false, 'message' => 'Due date and time cannot be earlier than now.'];
     }
 
     $existingStatement = db()->prepare(
@@ -647,7 +652,7 @@ function borrow_book(int $userId, int $bookId, string $dueDate): array
 
         $recordStatement = $pdo->prepare(
             "INSERT INTO borrow_records (user_id, book_id, borrow_date, due_date, status, penalty, created_at)
-             VALUES (:user_id, :book_id, CURDATE(), :due_date, 'borrowed', 0, NOW())"
+             VALUES (:user_id, :book_id, NOW(), :due_date, 'borrowed', 0, NOW())"
         );
         $recordStatement->execute([
             'user_id' => $userId,
@@ -697,7 +702,7 @@ function return_book(int $recordId): array
         return ['success' => false, 'message' => 'This record has already been returned.'];
     }
 
-    $returnDate = date('Y-m-d');
+    $returnDate = date('Y-m-d H:i:s');
     $penalty = calculate_penalty($record['due_date'], $returnDate);
     $pdo = db();
 
@@ -796,12 +801,12 @@ function get_report_records(string $status, ?string $dateFrom = null, ?string $d
 
     if ($dateFrom !== null && $dateFrom !== '') {
         $sql .= " AND br.{$dateField} >= :date_from";
-        $params['date_from'] = $dateFrom;
+        $params['date_from'] = $dateFrom . ' 00:00:00';
     }
 
     if ($dateTo !== null && $dateTo !== '') {
         $sql .= " AND br.{$dateField} <= :date_to";
-        $params['date_to'] = $dateTo;
+        $params['date_to'] = $dateTo . ' 23:59:59';
     }
 
     $sql .= " ORDER BY br.{$dateField} DESC";
@@ -837,7 +842,7 @@ function get_most_borrowed_books(): array
 function get_reservation_cart_items(int $userId): array
 {
     $statement = db()->prepare(
-        "SELECT rci.id, rci.book_id, rci.status, rci.created_at, b.title, b.author, b.isbn, b.category, b.available_quantity
+        "SELECT rci.id, rci.book_id, rci.status, rci.due_date, rci.reserved_at, rci.created_at, b.title, b.author, b.isbn, b.category, b.available_quantity
          FROM reservation_cart_items rci
          INNER JOIN books b ON b.id = rci.book_id
          WHERE rci.user_id = :user_id AND rci.status = 'in_cart'
@@ -849,24 +854,52 @@ function get_reservation_cart_items(int $userId): array
 }
 
 /**
+ * Returns visible reservation cart history for a borrower.
+ *
+ * @return list<array<string,mixed>>
+ */
+function get_student_reservation_items(int $userId): array
+{
+    $statement = db()->prepare(
+        "SELECT rci.id, rci.book_id, rci.status, rci.due_date, rci.reserved_at, rci.created_at, b.title, b.author, b.isbn, b.category, b.available_quantity
+         FROM reservation_cart_items rci
+         INNER JOIN books b ON b.id = rci.book_id
+         WHERE rci.user_id = :user_id AND rci.status IN ('in_cart', 'reserved')
+         ORDER BY FIELD(rci.status, 'in_cart', 'reserved'), rci.created_at DESC"
+    );
+    $statement->execute(['user_id' => $userId]);
+
+    return $statement->fetchAll();
+}
+
+/**
  * Adds a book to a borrower's reservation cart.
  *
  * @return array{success:bool,message:string}
  */
-function add_book_to_cart(int $userId, int $bookId): array
+function add_book_to_cart(int $userId, int $bookId, string $dueDate): array
 {
+    $dueDate = normalize_datetime_input($dueDate) ?? '';
     $book = get_book($bookId);
 
     if ($book === null || (int) $book['available_quantity'] <= 0) {
         return ['success' => false, 'message' => 'Book is unavailable for reservation.'];
     }
 
+    if ($dueDate === '') {
+        return ['success' => false, 'message' => 'Return date and time are required.'];
+    }
+
+    if ($dueDate < date('Y-m-d H:i:s')) {
+        return ['success' => false, 'message' => 'Return date and time cannot be earlier than now.'];
+    }
+
     try {
         $statement = db()->prepare(
-            "INSERT INTO reservation_cart_items (user_id, book_id, status, created_at)
-             VALUES (:user_id, :book_id, 'in_cart', NOW())"
+            "INSERT INTO reservation_cart_items (user_id, book_id, due_date, status, created_at)
+             VALUES (:user_id, :book_id, :due_date, 'in_cart', NOW())"
         );
-        $statement->execute(['user_id' => $userId, 'book_id' => $bookId]);
+        $statement->execute(['user_id' => $userId, 'book_id' => $bookId, 'due_date' => $dueDate]);
 
         return ['success' => true, 'message' => 'Book added to reservation cart.'];
     } catch (Throwable $exception) {
@@ -890,7 +923,7 @@ function remove_book_from_cart(int $userId, int $cartItemId): void
  */
 function get_pending_reservations(string $search = ''): array
 {
-    $sql = "SELECT rci.id, rci.user_id, rci.book_id, rci.created_at, u.name, u.email, bp.student_id, b.title, b.author, b.available_quantity
+    $sql = "SELECT rci.id, rci.user_id, rci.book_id, rci.due_date, rci.created_at, u.name, u.email, bp.student_id, b.title, b.author, b.available_quantity
             FROM reservation_cart_items rci
             INNER JOIN users u ON u.id = rci.user_id
             INNER JOIN borrower_profiles bp ON bp.user_id = u.id
@@ -916,11 +949,11 @@ function get_pending_reservations(string $search = ''): array
  *
  * @return array{success:bool,message:string}
  */
-function approve_reservation(int $reservationId, string $dueDate): array
+function approve_reservation(int $reservationId, ?string $dueDate = null): array
 {
     $pdo = db();
     $reservationStmt = $pdo->prepare(
-        "SELECT rci.id, rci.user_id, rci.book_id, rci.status, b.available_quantity
+        "SELECT rci.id, rci.user_id, rci.book_id, rci.due_date, rci.status, b.available_quantity
          FROM reservation_cart_items rci
          INNER JOIN books b ON b.id = rci.book_id
          WHERE rci.id = :id
@@ -933,7 +966,8 @@ function approve_reservation(int $reservationId, string $dueDate): array
         return ['success' => false, 'message' => 'Reservation no longer available.'];
     }
 
-    $result = borrow_book((int) $reservation['user_id'], (int) $reservation['book_id'], $dueDate);
+    $approvedDueDate = $dueDate !== null && trim($dueDate) !== '' ? $dueDate : (string) $reservation['due_date'];
+    $result = borrow_book((int) $reservation['user_id'], (int) $reservation['book_id'], $approvedDueDate);
     if (!$result['success']) {
         return $result;
     }

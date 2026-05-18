@@ -41,8 +41,8 @@ render_app_start('Returned History', 'history');
                             <p class="text-xs text-slate-500"><?= e($record['author']) ?></p>
                         </td>
                         <td class="px-3 py-4"><?= e(format_date($record['borrow_date'])) ?></td>
-                        <td class="px-3 py-4"><?= e(format_date($record['due_date'])) ?></td>
-                        <td class="px-3 py-4"><?= e(format_date($record['return_date'])) ?></td>
+                        <td class="px-3 py-4"><?= e(format_datetime($record['due_date'])) ?></td>
+                        <td class="px-3 py-4"><?= e(format_datetime($record['return_date'])) ?></td>
                         <td class="px-3 py-4"><?= e(format_money((float) $record['penalty'])) ?></td>
                     </tr>
                 <?php endforeach; ?>

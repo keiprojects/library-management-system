@@ -190,6 +190,7 @@ function navigation_links(string $role): array
     return [
         ['label' => 'Dashboard', 'href' => 'student/dashboard.php', 'key' => 'dashboard'],
         ['label' => 'Available Books', 'href' => 'student/books.php', 'key' => 'books'],
+        ['label' => 'Reservation Cart', 'href' => 'student/cart.php', 'key' => 'cart'],
         ['label' => 'Borrowed Books', 'href' => 'student/borrowed.php', 'key' => 'borrowed'],
         ['label' => 'Returned History', 'href' => 'student/history.php', 'key' => 'history'],
     ];

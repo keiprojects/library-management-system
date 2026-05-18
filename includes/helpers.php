@@ -94,7 +94,70 @@ function format_date(?string $date): string
         return 'Not yet returned';
     }
 
-    return date('M d, Y', strtotime($date));
+    $timestamp = strtotime($date);
+
+    if ($timestamp === false) {
+        return $date;
+    }
+
+    return date('M d, Y', $timestamp);
+}
+
+/**
+ * Formats a date/time string into a more readable style.
+ */
+function format_datetime(?string $date): string
+{
+    if (empty($date)) {
+        return 'Not yet returned';
+    }
+
+    $timestamp = strtotime($date);
+
+    if ($timestamp === false) {
+        return $date;
+    }
+
+    return date('M d, Y h:i A', $timestamp);
+}
+
+/**
+ * Converts HTML datetime-local input into a database DATETIME string.
+ */
+function normalize_datetime_input(string $dateTime): ?string
+{
+    $dateTime = trim($dateTime);
+
+    if ($dateTime === '') {
+        return null;
+    }
+
+    $dateTime = str_replace('T', ' ', $dateTime);
+    $timestamp = strtotime($dateTime);
+
+    if ($timestamp === false) {
+        return null;
+    }
+
+    return date('Y-m-d H:i:s', $timestamp);
+}
+
+/**
+ * Formats a database date/time value for an HTML datetime-local input.
+ */
+function datetime_local_value(?string $dateTime): string
+{
+    if (empty($dateTime)) {
+        return '';
+    }
+
+    $timestamp = strtotime($dateTime);
+
+    if ($timestamp === false) {
+        return '';
+    }
+
+    return date('Y-m-d\TH:i', $timestamp);
 }
 
 /**
