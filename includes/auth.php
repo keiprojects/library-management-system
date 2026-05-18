@@ -88,6 +88,20 @@ function require_admin(): void
     }
 }
 
+
+/**
+ * Protects super-admin-only pages.
+ */
+function require_super_admin(): void
+{
+    require_login();
+
+    if ((current_user()['role'] ?? '') !== 'super_admin') {
+        flash('error', 'Only super admin accounts can access that page.');
+        redirect('admin/dashboard.php');
+    }
+}
+
 /**
  * Protects borrower-only pages.
  */

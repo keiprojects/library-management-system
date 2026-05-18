@@ -26,6 +26,11 @@ function status_badge_class(string $status): string
         'approved' => 'bg-emerald-100 text-emerald-700',
         'pending' => 'bg-amber-100 text-amber-800',
         'rejected' => 'bg-rose-100 text-rose-700',
+        'active' => 'bg-emerald-100 text-emerald-700',
+        'inactive' => 'bg-rose-100 text-rose-700',
+        'super_admin' => 'bg-purple-100 text-purple-700',
+        'admin' => 'bg-sky-100 text-sky-700',
+        'borrower' => 'bg-slate-100 text-slate-700',
         default => 'bg-slate-100 text-slate-700',
     };
 }
@@ -178,6 +183,7 @@ function navigation_links(string $role): array
             ['label' => 'Dashboard', 'href' => 'admin/dashboard.php', 'key' => 'dashboard'],
             ['label' => 'Books', 'href' => 'admin/books/index.php', 'key' => 'books'],
             ['label' => 'Borrowers', 'href' => 'admin/borrowers/index.php', 'key' => 'borrowers'],
+            ...($role === 'super_admin' ? [['label' => 'Users', 'href' => 'admin/users/index.php', 'key' => 'users']] : []),
             ['label' => 'Borrow Books', 'href' => 'admin/transactions/borrow.php', 'key' => 'borrow'],
             ['label' => 'Return Books', 'href' => 'admin/transactions/return.php', 'key' => 'return'],
             ['label' => 'Borrowed Report', 'href' => 'admin/reports/borrowed.php', 'key' => 'borrowed_report'],

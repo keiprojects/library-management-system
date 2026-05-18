@@ -27,6 +27,192 @@ function find_user_by_id(int $userId): ?array
 }
 
 /**
+ * Ensures existing installations have the user status column needed by super admin management.
+ */
+function ensure_user_account_status_column(): void
+{
+    static $checked = false;
+
+    if ($checked) {
+        return;
+    }
+
+    $checked = true;
+
+    try {
+        $statement = db()->prepare(
+            'SELECT COUNT(*)
+             FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = :table_name
+               AND COLUMN_NAME = :column_name'
+        );
+        $statement->execute([
+            'table_name' => 'users',
+            'column_name' => 'account_status',
+        ]);
+
+        if ((int) $statement->fetchColumn() === 0) {
+            db()->exec(
+                "ALTER TABLE users
+                 ADD account_status ENUM('active', 'inactive') NOT NULL DEFAULT 'active'
+                 AFTER approval_status"
+            );
+        }
+    } catch (Throwable $exception) {
+        // Keep pages usable in restricted environments; new installs get this column from schema.sql.
+    }
+}
+
+/**
+ * Returns a searchable list of all users for super admin management.
+ *
+ * @return list<array<string,mixed>>
+ */
+function get_users(string $search = ''): array
+{
+    ensure_user_account_status_column();
+
+    $sql = 'SELECT id, name, email, role, approval_status, COALESCE(account_status, "active") AS account_status, created_at
+            FROM users';
+    $params = [];
+
+    if ($search !== '') {
+        $sql .= ' WHERE name LIKE :search OR email LIKE :search OR role LIKE :search';
+        $params['search'] = '%' . $search . '%';
+    }
+
+    $sql .= ' ORDER BY role = "super_admin" DESC, name ASC';
+
+    $statement = db()->prepare($sql);
+    $statement->execute($params);
+
+    return $statement->fetchAll();
+}
+
+/**
+ * Updates the core profile fields for a user.
+ *
+ * @return array{success:bool,message:string}
+ */
+function update_user_profile(int $userId, array $data): array
+{
+    ensure_user_account_status_column();
+
+    try {
+        $statement = db()->prepare(
+            'UPDATE users
+             SET name = :name, email = :email, role = :role, account_status = :account_status
+             WHERE id = :id'
+        );
+        $statement->execute([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'role' => $data['role'],
+            'account_status' => $data['account_status'],
+            'id' => $userId,
+        ]);
+
+        return [
+            'success' => true,
+            'message' => 'User profile updated successfully.',
+        ];
+    } catch (Throwable $exception) {
+        return [
+            'success' => false,
+            'message' => 'Unable to update user profile. Please check for duplicate email addresses.',
+        ];
+    }
+}
+
+/**
+ * Changes whether a user account can log in.
+ *
+ * @return array{success:bool,message:string}
+ */
+function update_user_account_status(int $userId, string $status): array
+{
+    ensure_user_account_status_column();
+
+    try {
+        $statement = db()->prepare('UPDATE users SET account_status = :account_status WHERE id = :id');
+        $statement->execute([
+            'account_status' => $status,
+            'id' => $userId,
+        ]);
+
+        return [
+            'success' => true,
+            'message' => $status === 'active' ? 'User account reactivated.' : 'User account deactivated.',
+        ];
+    } catch (Throwable $exception) {
+        return [
+            'success' => false,
+            'message' => 'Unable to update user account status.',
+        ];
+    }
+}
+
+/**
+ * Generates a readable temporary password for password reset actions.
+ */
+function generate_temporary_password(): string
+{
+    return 'Lib-' . bin2hex(random_bytes(4)) . '-' . random_int(100, 999);
+}
+
+/**
+ * Sets a new password for a user.
+ *
+ * @return array{success:bool,message:string}
+ */
+function set_user_password(int $userId, string $password): array
+{
+    try {
+        $statement = db()->prepare('UPDATE users SET password = :password WHERE id = :id');
+        $statement->execute([
+            'password' => password_hash($password, PASSWORD_DEFAULT),
+            'id' => $userId,
+        ]);
+
+        return [
+            'success' => true,
+            'message' => 'Password updated successfully.',
+        ];
+    } catch (Throwable $exception) {
+        return [
+            'success' => false,
+            'message' => 'Unable to update the password.',
+        ];
+    }
+}
+
+/**
+ * Sends a temporary password email to the selected user.
+ *
+ * @return array{success:bool,message:string}
+ */
+function send_password_reset_email(array $user, string $temporaryPassword): array
+{
+    $subject = 'Your Library Management System password reset';
+    $body = sprintf(
+        '<p>Hello %s,</p>
+        <p>A super admin reset your Library Management System password.</p>
+        <p>Your temporary password is: <strong>%s</strong></p>
+        <p>Please log in and ask the super admin to update it again if you did not request this change.</p>',
+        e($user['name'] ?? 'User'),
+        e($temporaryPassword)
+    );
+
+    return send_smtp_mail(
+        (string) ($user['email'] ?? ''),
+        (string) ($user['name'] ?? ''),
+        $subject,
+        $body
+    );
+}
+
+/**
  * Creates a borrower account together with its profile.
  *
  * @return array{success:bool,message:string,user_id:int|null}

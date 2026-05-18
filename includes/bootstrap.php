@@ -17,16 +17,17 @@ require_once __DIR__ . '/layout.php';
 
 if (is_logged_in()) {
     $sessionUser = current_user();
+    $freshUser = find_user_by_id((int) ($sessionUser['id'] ?? 0));
 
-    if (($sessionUser['role'] ?? '') === 'borrower') {
-        $freshUser = find_user_by_id((int) ($sessionUser['id'] ?? 0));
+    if ($freshUser === null || !user_can_log_in($freshUser)) {
+        $message = $freshUser === null
+            ? 'Your account is no longer available.'
+            : ((($freshUser['role'] ?? '') === 'borrower') ? borrower_login_block_message($freshUser) : 'Your account has been deactivated. Please contact the super admin.');
 
-        if ($freshUser === null || !user_can_log_in($freshUser)) {
-            logout_user();
-            session_start();
-            flash('error', $freshUser === null ? 'Your borrower account is no longer available.' : borrower_login_block_message($freshUser));
-            redirect('login.php');
-        }
+        logout_user();
+        session_start();
+        flash('error', $message);
+        redirect('login.php');
     }
 
     refresh_overdue_records();

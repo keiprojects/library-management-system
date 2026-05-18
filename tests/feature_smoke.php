@@ -76,4 +76,11 @@ $admin = [
 ];
 assert_true(user_can_log_in($admin, 'selected', 'presenter@example.com'), 'Admin accounts should not be blocked by borrower verification rules.');
 
+$inactiveAdmin = $admin;
+$inactiveAdmin['account_status'] = 'inactive';
+assert_true(!user_can_log_in($inactiveAdmin, 'none', ''), 'Inactive admin accounts should not be able to log in.');
+
+assert_same(['super_admin', 'admin', 'borrower'], user_role_options(), 'User role options should include all manageable roles.');
+assert_same(['active', 'inactive'], account_status_options(), 'Account status options should support deactivate and reactivate actions.');
+
 echo "feature_smoke.php passed\n";

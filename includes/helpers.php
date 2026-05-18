@@ -136,6 +136,41 @@ function borrower_approval_options(): array
 }
 
 /**
+ * Shared account status options for user access control.
+ *
+ * @return list<string>
+ */
+function account_status_options(): array
+{
+    return [
+        'active',
+        'inactive',
+    ];
+}
+
+/**
+ * Shared user role options for super admin user management.
+ *
+ * @return list<string>
+ */
+function user_role_options(): array
+{
+    return [
+        'super_admin',
+        'admin',
+        'borrower',
+    ];
+}
+
+/**
+ * Converts internal role values into user-friendly labels.
+ */
+function format_role(string $role): string
+{
+    return ucwords(str_replace('_', ' ', $role));
+}
+
+/**
  * Shared course options for borrower forms.
  *
  * @return list<string>
@@ -218,6 +253,10 @@ function user_can_log_in(
     string $mode = EMAIL_VERIFICATION_MODE,
     string $selectedEmails = EMAIL_VERIFICATION_EMAILS
 ): bool {
+    if (($user['account_status'] ?? 'active') !== 'active') {
+        return false;
+    }
+
     if (($user['role'] ?? '') !== 'borrower') {
         return true;
     }
@@ -238,6 +277,10 @@ function user_can_log_in(
  */
 function borrower_login_block_message(array $user): string
 {
+    if (($user['account_status'] ?? 'active') !== 'active') {
+        return 'Your account has been deactivated. Please contact the library admin.';
+    }
+
     $approvalStatus = (string) ($user['approval_status'] ?? 'approved');
 
     if ($approvalStatus === 'pending') {

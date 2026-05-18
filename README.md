@@ -31,10 +31,12 @@ This makes it suitable for:
 
 ## 2) Core Features
 
-- Role-based login (`admin/librarian` and `borrower/student`)
+- Role-based login (`super admin`, `admin/librarian`, and `borrower/student`)
+- Super Admin-only user management for all accounts, including admins
 - Borrower self-registration
 - Student ID upload and admin review flow
 - Optional email verification
+- Super Admin password reset, profile edit, deactivate, and reactivate actions
 - Secure password hashing via `password_hash()`
 - Book catalog management with quantity tracking
 - Borrow and return transaction flow
@@ -58,6 +60,11 @@ This makes it suitable for:
 ```text
 library-management-system/
 |-- admin/
+|   |-- books/
+|   |-- borrowers/
+|   |-- reports/
+|   |-- transactions/
+|   `-- users/              # Super Admin-only user management
 |-- assets/
 |-- database/
 |   |-- schema.sql
@@ -144,10 +151,10 @@ APP_URL=/library-management-system
 APP_PUBLIC_URL=http://localhost/library-management-system
 ```
 
-### 5. Configure Gmail SMTP for a system email account
+### Step 5 — Configure Demo Email (Optional but Useful for Presentation)
 
 Use a dedicated Gmail account for system email delivery.
-### Step 5 — Configure Demo Email (Optional but Useful for Presentation)
+
 
 If showing email verification in class:
 
@@ -212,10 +219,12 @@ php -S localhost:8000
 
 After importing `seed.sql`:
 
+- **Super Admin Email:** `superadmin@libraryms.test`
+- **Super Admin Password:** `admin123`
 - **Admin Email:** `admin@libraryms.test`
 - **Admin Password:** `admin123`
 
-> Change credentials before production/public deployment.
+> Use the Super Admin account when you need to view all users, recover an admin email, reset passwords, or deactivate/reactivate accounts. Change credentials before production/public deployment.
 
 ---
 
@@ -228,35 +237,38 @@ Use this sequence for a smooth live presentation.
 - Confirm Apache/MySQL running.
 - Confirm DB imports succeeded.
 - Confirm `.env` values are valid.
-- Confirm seeded admin can log in.
+- Confirm seeded Super Admin and Admin accounts can log in.
 - Pre-create at least 3–5 sample books.
 - Prepare one sample student account for approval demo.
 
 ### B. Demo Flow (Suggested Script)
 
-1. **Login as Admin**
-   - Show role-based dashboard.
-2. **Book Management**
+1. **Login as Super Admin**
+   - Open **Users** and show that only Super Admin can view every user, including admin accounts.
+   - Demonstrate checking an admin email, editing a profile, sending a temporary password reset, and deactivating/reactivating a test account.
+2. **Login as Admin**
+   - Show that normal Admin users do not see the Super Admin-only **Users** section.
+3. **Book Management**
    - Add a new book.
    - Edit quantity.
    - Show search/filter.
-3. **Borrower Registration Review**
+4. **Borrower Registration Review**
    - Show pending student registration with ID card upload.
    - Approve borrower.
-4. **Borrow Transaction**
+5. **Borrow Transaction**
    - Borrow a book for approved borrower.
-5. **Return Transaction**
+6. **Return Transaction**
    - Return book and explain status changes.
-6. **Overdue + Penalty**
+7. **Overdue + Penalty**
    - Explain auto-overdue and penalty concept.
-7. **Reports**
+8. **Reports**
    - Open borrowed/returned/overdue reports.
 
 ### C. Presenter Tips
 
 - Speak in terms of *real school workflow* (librarian + students).
 - Explain why role separation matters (security + responsibility).
-- If time is short, prioritize: login → borrow flow → reports.
+- If time is short, prioritize: Super Admin users table → admin login → borrow flow → reports.
 
 ---
 
@@ -298,6 +310,9 @@ Use this sequence for a smooth live presentation.
 ### Recommended Validation Scenarios
 
 - Unauthorized user cannot access admin routes.
+- Normal admin user cannot access the Super Admin-only Users table.
+- Super Admin can view all user emails, including admin emails.
+- Inactive users cannot log in.
 - Unapproved borrower cannot proceed as approved user.
 - Borrow operation decreases available quantity correctly.
 - Return operation restores quantity and updates status.
@@ -313,6 +328,20 @@ Use this sequence for a smooth live presentation.
 
 ## 10) User Roles Summary
 
+### Super Admin
+
+Can:
+
+- Access admin dashboard and library operations
+- View the full users data table, including admin and borrower accounts
+- Search users by name, email, or role
+- Edit user profile details such as name, email, role, and account status
+- Send a temporary password reset to any user
+- Deactivate or reactivate accounts
+- Recover an admin email when an admin forgets which email is registered
+
+> Normal `admin` users cannot access the Super Admin-only users data table.
+
 ### Admin / Librarian
 
 Can:
@@ -323,6 +352,12 @@ Can:
 - Add/edit borrower records
 - Process borrowing and returns
 - View penalties and reports
+
+Cannot:
+
+- Open the Super Admin-only users data table
+- Manage other admin accounts
+- Deactivate/reactivate accounts outside the borrower approval flow
 
 ### Borrower / Student
 
@@ -347,15 +382,18 @@ Can:
 - SMTP delivery is handled directly by the app, so there is no Composer dependency required for the deployment.
 - Registration, admin borrower create, and admin borrower edit now use shared dropdown options for `course` and `year_level`.
 - Uploaded student IDs are stored in `uploads/student-ids/`.
+- The Super Admin users table is implemented in `admin/users/index.php`; the edit, password reset, and status actions live in the same `admin/users/` folder.
+- User login access is controlled by `users.account_status`; `inactive` users are blocked at login/session refresh.
 
 ## Common Troubleshooting
 
 - If the database does not connect, recheck `.env`.
 - If page links look broken, verify `APP_URL`.
-- If the admin cannot log in, confirm that `database/seed.sql` was imported.
+- If the Super Admin or Admin cannot log in, confirm that `database/seed.sql` was imported.
 - If MySQL reports duplicate values, check whether the email, student ID, or ISBN already exists.
 - If Gmail does not send, confirm that you used a Google App Password instead of the normal Gmail password.
 - If verification links fail, check that the `users` table includes the new verification columns.
+- If the Super Admin Users page fails on an existing database, confirm the `users` table includes `account_status ENUM('active', 'inactive') NOT NULL DEFAULT 'active'` from `database/schema.sql`.
 
 ---
 
@@ -369,7 +407,7 @@ Check:
 - MySQL service is running
 - Database name exists
 
-### Problem: "I cannot login with seeded admin"
+### Problem: "I cannot login with seeded Super Admin or Admin"
 
 Check:
 
@@ -402,5 +440,5 @@ Check:
 3. Import `schema.sql` then `seed.sql`.
 4. Copy `.env.example` to `.env` and configure DB.
 5. Open `http://localhost/library-management-system/login.php`.
-6. Login as `admin@libraryms.test` / `admin123`.
+6. Login as Super Admin with `superadmin@libraryms.test` / `admin123`, or as Admin with `admin@libraryms.test` / `admin123`.
 
